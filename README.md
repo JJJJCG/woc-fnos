@@ -39,7 +39,7 @@ curl -fsSL -o fnpack https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64
 chmod +x fnpack && sudo mv fnpack /usr/local/bin/
 
 cd woc-instance
-fnpack build        # 产出 woc-instance-<version>.fpk
+fnpack build        # 产出 woc-instance.fpk（用 appname 命名，不带版本号）
 ```
 
 CI 见 `.github/workflows/build-fpk.yml`：推 `vX.Y.Z` tag 会自动构建并创建 Release 挂上 `.fpk`。

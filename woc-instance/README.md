@@ -65,6 +65,21 @@ ports:
 | `docker-project` | `name: woc-instance` / `path: docker` | `path` 是**相对于 `app/` 目录**的路径，写 `docker` 而非 `app/docker`；写错应用中心找不到 compose |
 | 不挂 `docker.sock` | `run-as=package` 即可 | 单实例不需要动态创建容器，回避了面板包那个「package 用户无权访问 docker.sock」的坑 |
 
+## fnpack 的两个坑
+
+1. **`cmd/` 下 9 个生命周期脚本一个都不能少**。官方文档只写了「`cmd/` 目录必须存在」，
+   实际 `fnpack build` 会逐个检查，缺任何一个都直接失败：
+
+   ```
+   Verifying files...
+   Packing failed. Required file "cmd/install_init" is missing
+   ```
+
+   本包已补齐：`install_init`、`install_callback`、`main`、`upgrade_init`、`upgrade_callback`、
+   `uninstall_init`、`uninstall_callback`、`config_init`、`config_callback`。
+
+2. **产物名是 `<appname>.fpk`，不带版本号**。想让用户看出版本差异，只能靠 Release 的 tag。
+
 ## 构建
 
 CI 见仓库根的 `.github/workflows/build-fpk.yml`：推 `v*.*.*` tag 时自动下载官方 `fnpack`（linux-amd64）打包，
@@ -78,7 +93,7 @@ chmod +x /usr/local/bin/fnpack
 
 cd woc-instance
 fnpack build
-# 产出 woc-instance-<version>.fpk
+# 产出 woc-instance.fpk（fnpack 1.2.3 用 appname 命名，不带版本号）
 ```
 
 然后在飞牛「应用中心 → 手动安装」上传 `.fpk`。
