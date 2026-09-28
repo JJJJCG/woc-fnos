@@ -1,0 +1,61 @@
+[
+  {
+    "stepTitle": "访问入口",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "本应用仅开放 3001（HTTPS）端口。安装完成后请用 https://NAS地址:3001/ 访问；证书为自签名，浏览器会提示「不安全」，选择继续访问即可。"
+      }
+    ]
+  },
+  {
+    "stepTitle": "镜像版本",
+    "items": [
+      {
+        "type": "text",
+        "field": "wizard_version",
+        "label": "镜像标签",
+        "initValue": "latest",
+        "helpText": "保持 latest 跟随最新发布；也可以钉死版本号，例如 v1.4.5",
+        "rules": [
+          { "required": true, "message": "请输入镜像标签" },
+          { "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$", "message": "只允许字母、数字、点、下划线、连字符" }
+        ]
+      }
+    ]
+  },
+  {
+    "stepTitle": "设备伪装",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "容器内会伪装成一台个人电脑（主机名 + 持久 machine-id + os-release 伪装），用于降低微信判「非真实设备／设备农场」的风控概率。"
+      },
+      {
+        "type": "text",
+        "field": "wizard_hostname",
+        "label": "容器主机名",
+        "initValue": "desktop-pc",
+        "helpText": "建议形如 desktop-pc-101。多台设备请用不同编号。",
+        "rules": [
+          { "required": true, "message": "请输入主机名" },
+          { "pattern": "^[A-Za-z0-9][A-Za-z0-9-]{0,62}$", "message": "仅限字母、数字、连字符，且不能以连字符开头" }
+        ]
+      },
+      {
+        "type": "tips",
+        "helpText": "MAC 地址必须每台设备不同：填同一个值会让同一局域网内的容器互相抢同一 IP，网络直接不通。这里没有默认值——请先在飞牛 SSH 里执行 openssl rand -hex 6 | sed 's/\\(..\\)/\\1:/g;s/:$//' 生成一个，或直接填这台 NAS 网卡的 MAC。"
+      },
+      {
+        "type": "text",
+        "field": "wizard_mac",
+        "label": "容器 MAC 地址",
+        "helpText": "格式 aa:bb:cc:dd:ee:ff，六组十六进制、冒号分隔",
+        "rules": [
+          { "required": true, "message": "请输入 MAC 地址" },
+          { "pattern": "^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$", "message": "格式应为 aa:bb:cc:dd:ee:ff" }
+        ]
+      }
+    ]
+  }
+]

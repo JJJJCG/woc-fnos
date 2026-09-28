@@ -1,0 +1,15 @@
+appname=woc-instance
+version=1.0.0
+display_name=云微（微信实例）
+desc=在飞牛 NAS 上运行一台服务端微信，浏览器多端共享同一登录态。<br>仅开放 3001（HTTPS）端口，安装后用 https://NAS地址:3001/ 访问；登录态与聊天数据存放在应用共享目录，升级镜像不丢数据。
+platform=all
+source=thirdparty
+maintainer=Gloridust
+maintainer_url=https://github.com/Gloridust/WechatOnCloud
+distributor=Gloridust
+distributor_url=https://github.com/Gloridust/WechatOnCloud
+os_min_version=0.9.0
+service_port=3001
+checkport=true
+ctl_stop=true
+changelog=初版：纯微信实例，仅开放 3001 端口

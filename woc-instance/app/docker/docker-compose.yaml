@@ -1,0 +1,63 @@
+# 飞牛应用中心直接执行本 compose 来启停应用（由 config/resource 的 docker-project 声明）。
+#
+# 与仓库根 docker-compose.wechat-only.yml 等价，差异：
+#   1) 只用 bridge 网络 + 端口映射，且【只映射 3001（HTTPS）】——3000（HTTP）不对外，
+#      容器内部仍监听 3000，但应用中心不会暴露它。
+#   2) /config 落到飞牛共享目录，可在「文件管理」里看到、备份、迁移。
+#   3) PUID/PGID 用飞牛提供的应用用户（TRIM_UID/TRIM_GID），不是写死的 1000。
+#
+# ⚠️ 3001 是 KasmVNC 的自签名 HTTPS 口，浏览器首次访问会提示证书不受信任，继续访问即可。
+#    环境变量名 = wizard/install 里的 field 名，改字段名等于改环境变量名，别乱动。
+
+services:
+  wechat:
+    image: ghcr.nju.edu.cn/gloridust/wechat-on-cloud:${wizard_version:-latest}
+    # 备选镜像源（拉不动时替换上面一行）：
+    #   docker.io/gloridust/wechat-on-cloud:${wizard_version:-latest}
+    #   ghcr.io/gloridust/wechat-on-cloud:${wizard_version:-latest}
+
+    container_name: woc
+    hostname: ${wizard_hostname:-desktop-pc}
+
+    # 设备伪装：MAC 由安装向导传入，必填且每台设备必须不同。
+    # 容器固定 MAC 会让「微信端设备指纹」跨重启稳定；但若多台设备用同一个值，
+    # 同一局域网内会互相抢同一 IP，直接断网。向导里用正则校验了格式。
+    mac_address: ${wizard_mac}
+
+    # 微信内嵌 Chromium 需要 ≥1GiB 共享内存，调小会莫名崩溃。
+    shm_size: 2gb
+
+    # 微信/Chromium 在容器内需要放宽的 seccomp 配置，不要删。
+    security_opt:
+      - seccomp=unconfined
+
+    environment:
+      # 关闭 GPU 加速，退回 CPU 软件渲染（虚拟化下 -hw3d 会让 Xvnc 长跑内存膨胀）
+      - DISABLE_DRI=1
+      # 数据卷属主 = 飞牛的应用用户，硬编码 1000 会导致 /config 不可写
+      - PUID=${TRIM_UID}
+      - PGID=${TRIM_GID}
+      - TZ=Asia/Shanghai
+      # os-release 伪装成 deepin
+      - WOC_SPOOF_OS=1
+      # 实例承载的应用类型：wechat / chromium / telegram / custom
+      - WOC_APP_TYPE=wechat
+
+    volumes:
+      # 共享目录名 = config/resource 里 data-share 声明的 name
+      # 里面是微信本体 + 扫码登录态 + 聊天数据。升级镜像只重建容器，不丢登录态。
+      - /var/apps/woc-instance/shares/woc-instance/config:/config
+
+    # 只开 3001；3000 保持容器内可见、宿主不暴露。
+    # 宿主端口写死 3001，与 manifest 的 service_port=3001 + checkport=true 对应。
+    ports:
+      - "3001:3001"
+
+    # 日志硬上限：否则崩溃循环刷错会把宿主磁盘吃满
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "2"
+
+    restart: unless-stopped

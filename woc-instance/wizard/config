@@ -1,0 +1,45 @@
+[
+  {
+    "stepTitle": "运行参数",
+    "items": [
+      {
+        "type": "text",
+        "field": "wizard_version",
+        "label": "镜像标签",
+        "helpText": "改动后需要重启应用才会重建容器",
+        "rules": [
+          { "required": true, "message": "请输入镜像标签" },
+          { "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$", "message": "只允许字母、数字、点、下划线、连字符" }
+        ]
+      }
+    ]
+  },
+  {
+    "stepTitle": "设备伪装",
+    "items": [
+      {
+        "type": "tips",
+        "helpText": "改动主机名或 MAC 会重建容器。数据卷 /config 不丢，微信登录态保留。"
+      },
+      {
+        "type": "text",
+        "field": "wizard_hostname",
+        "label": "容器主机名",
+        "rules": [
+          { "required": true, "message": "请输入主机名" },
+          { "pattern": "^[A-Za-z0-9][A-Za-z0-9-]{0,62}$", "message": "仅限字母、数字、连字符，且不能以连字符开头" }
+        ]
+      },
+      {
+        "type": "text",
+        "field": "wizard_mac",
+        "label": "容器 MAC 地址",
+        "helpText": "每台设备必须不同。生成：openssl rand -hex 6 | sed 's/\\(..\\)/\\1:/g;s/:$//'",
+        "rules": [
+          { "required": true, "message": "请输入 MAC 地址" },
+          { "pattern": "^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$", "message": "格式应为 aa:bb:cc:dd:ee:ff" }
+        ]
+      }
+    ]
+  }
+]

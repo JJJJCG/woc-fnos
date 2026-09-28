@@ -1,0 +1,28 @@
+#!/bin/bash
+# fnOS 应用生命周期入口。
+# Docker 类应用的启停由应用中心按 config/resource 的 docker-project 声明直接执行 compose，
+# 所以 start/stop 只需返回成功；status 用容器运行状态代表应用状态。
+#
+# 退出码约定（飞牛文档）：0 = 成功 / status 表示运行中；3 = status 表示未运行；1 = 失败。
+set -u
+
+CONTAINER="woc"
+
+is_running() {
+  [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null)" = "true" ]
+}
+
+case "${1:-}" in
+  start)
+    exit 0
+    ;;
+  stop)
+    exit 0
+    ;;
+  status)
+    if is_running; then exit 0; else exit 3; fi
+    ;;
+  *)
+    exit 0
+    ;;
+esac

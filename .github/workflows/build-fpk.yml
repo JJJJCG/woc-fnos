@@ -1,0 +1,102 @@
+name: build-fpk
+
+# 用官方 fnpack 把 woc-instance/ 打成飞牛应用包（.fpk）。
+#   - 推 vX.Y.Z tag  → 构建 + 创建 GitHub Release，把 .fpk 作为附件发布
+#   - 推 main        → 只构建，产物上传为 workflow artifact（用来尽早发现打包回归）
+#   - 手动触发       → 同上，可选填一个 fpk 版本号
+#
+# fnpack 是官方提供的独立静态二进制，无需登录、无需联网校验，只做必要文件与 JSON 格式检查后打包。
+# fpk 内不含镜像（镜像由应用中心在安装时从 registry 拉取），所以产物只有几十 KB。
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'fpk 版本号（留空则读 woc-instance/manifest）'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          set -eu
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            ver="${GITHUB_REF_NAME#v}"
+          elif [ -n "${{ inputs.version }}" ]; then
+            ver="${{ inputs.version }}"
+          else
+            ver="$(sed -n 's/^version=//p' woc-instance/manifest | head -1)"
+          fi
+          [ -n "$ver" ] || { echo "::error::版本号为空"; exit 1; }
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "fpk 版本：$ver"
+
+      - name: Install fnpack
+        run: |
+          set -eu
+          curl -fsSL -o /usr/local/bin/fnpack \
+            https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64
+          chmod +x /usr/local/bin/fnpack
+          fnpack --help
+
+      # fpk 自身的版本号跟着 tag / 输入走，避免每次发版都要手改 manifest
+      - name: Stamp version into manifest
+        run: |
+          set -eu
+          sed -i "s/^version=.*/version=${{ steps.ver.outputs.version }}/" woc-instance/manifest
+          grep '^version=' woc-instance/manifest
+
+      # 生命周期脚本必须有可执行位。Windows 上提交极易丢掉该位（core.filemode=false），
+      # 这里兜一道，保证打进 fpk 的 cmd/* 都是 0755。
+      - name: Ensure lifecycle scripts are executable
+        run: |
+          set -eu
+          chmod +x woc-instance/cmd/*
+          ls -la woc-instance/cmd/
+
+      - name: Build fpk
+        run: |
+          set -eu
+          cd woc-instance
+          fnpack build
+          cd "${GITHUB_WORKSPACE}"
+          mkdir -p dist
+          find woc-instance -name '*.fpk' -exec cp -v {} dist/ \;
+          find . -maxdepth 1 -name '*.fpk' -exec cp -v {} dist/ \;
+          ls -la dist/
+          test -n "$(ls -A dist/)" || { echo "::error::fnpack 未产出 .fpk，检查上面的日志"; exit 1; }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fpk-${{ steps.ver.outputs.version }}
+          path: dist/*.fpk
+          if-no-files-found: error
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/*.fpk --clobber
+          else
+            gh release create "$tag" dist/*.fpk \
+              --title "woc-fnos ${tag}" \
+              --notes-file .github/release-notes.md \
+              --verify-tag
+          fi
