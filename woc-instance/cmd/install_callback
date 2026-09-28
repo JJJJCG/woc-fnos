@@ -1,0 +1,12 @@
+#!/bin/bash
+# 生命周期：install_callback —— 安装文件应用后执行。
+#
+# 本应用是 Docker 类应用，容器的启停由飞牛应用中心按 config/resource 里的
+# docker-project 声明直接执行 compose 完成，这里没有额外的事要做。
+# 保留空实现是为了满足 fnpack 的必需文件检查（缺任何一个都打不出 fpk）。
+#
+# 需要时再往里加逻辑，注意：
+#   - 脚本应可重复执行（安装/升级/配置流程都可能被重跑）
+#   - 失败前把面向用户的错误写进 $TRIM_TEMP_LOGFILE，再以非零码退出
+set -u
+exit 0
